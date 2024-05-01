@@ -10,7 +10,7 @@ const User = sequelize.define("User", {
   },
 
   username: {
-    type: DataTypes.String,
+    type: DataTypes.STRING,
     required: true,
     unique: true,
     validate: {
@@ -19,7 +19,7 @@ const User = sequelize.define("User", {
   },
 
   email: {
-    type: DataTypes.String,
+    type: DataTypes.STRING,
     required: true,
     unique: true,
     validate: {
@@ -28,7 +28,7 @@ const User = sequelize.define("User", {
   },
 
   password: {
-    type: DataTypes.String,
+    type: DataTypes.STRING,
     required: true,
   },
 
@@ -39,11 +39,11 @@ const User = sequelize.define("User", {
   },
 
   phone: {
-    type: DataTypes.String,
+    type: DataTypes.STRING,
     required: true,
     unique: true,
     validate: {
-      is: /^[0-9{10}$/,
+      is: /^[0-9]{10}$/,
     },
   },
 });
