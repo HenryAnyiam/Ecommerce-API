@@ -112,7 +112,7 @@ exports.deleteUser = async (req, res) => {
 }
 
 
-exports.getProfileById = async (req, res) {
+exports.getProfileById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     const profile = await User.getProfile();
