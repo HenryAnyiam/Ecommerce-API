@@ -21,11 +21,12 @@ const Profile = sequelize.define("Profile", {
   photo: {
     type: DataTypes.STRING,
     default: "default_photo_url",
+    allowNull: false,
   },
 
   userId: {
     type: DataTypes.UUID,
-    allowNull: true,
+    allowNull: false,
   },
 });
 

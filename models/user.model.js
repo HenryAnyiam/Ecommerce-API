@@ -27,6 +27,11 @@ const User = sequelize.define("User", {
     },
   },
 
+  emailVerify: {
+    type: DataTypes.BOOLEAN,
+    default: false,
+  },
+
   password: {
     type: DataTypes.STRING,
     required: true,
@@ -46,6 +51,12 @@ const User = sequelize.define("User", {
       is: /^[0-9]{10}$/,
     },
   },
+
+  phoneVerify: {
+    type: DataTypes.BOOLEAN,
+    default: false,
+  },
+
 });
 
 module.exports = User;

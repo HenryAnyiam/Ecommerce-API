@@ -31,7 +31,7 @@ const SequrityQuestion = sequelize.define("SequrityQuestion", {
   },
 });
 
-User.hasMany(SequrityQuestion, { foreignKey: "userId" });
+User.hasOne(SequrityQuestion, { foreignKey: "userId" });
 SequrityQuestion.belongsTo(User, { foreignKey: "userId" });
 
 module.exports = SequrityQuestion;
