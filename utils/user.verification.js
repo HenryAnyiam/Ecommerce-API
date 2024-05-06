@@ -38,8 +38,8 @@ exports.emailUser = async (params) => {
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
-      subject: "Verify Your Email",
-      text: `${totp}`
+      subject,
+      text,
     });
     return { message: "Email verification sent. Redirect to verify-email" };
   } catch (e) {

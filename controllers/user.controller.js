@@ -4,6 +4,7 @@ const User = require("../models/user.model");
 const TwoFactorAuth = require("../models/twoFactorAuth.model");
 const Cart = require("../models/cart.model");
 const Profile = require("../models/profile.model");
+const Address = require("../models/address.model");
 const sendVerification = require("../utils/user.verification");
 
 
@@ -49,6 +50,7 @@ exports.createUser = async (req, res) => {
     await user.createCart();
     await sendVerification.emailUser({ email, secret, type: "Verify" });
     return res.status(201).json({
+      id: user.id,
       username,
       email,
       emailVerify: user.emailVerify,
