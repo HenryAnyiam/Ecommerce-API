@@ -6,14 +6,14 @@ const User = require("./user.model");
 const Address = sequelize.define("Address", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
 
   type: {
     type: DataTypes.ENUM,
     values: ['home', 'work'],
-    default: 'home',
+    defaultValue: 'home',
   },
 
   street: {
@@ -43,7 +43,7 @@ const Address = sequelize.define("Address", {
 
   default: {
     type: DataTypes.BOOLEAN,
-    default: false,
+    defaultValue: false,
   },
 
   userId: {

@@ -3,8 +3,10 @@ const User = require("../models/user.model");
 const TwoFactorAuth = require("../models/twoFactorAuth.model");
 const authSecret = process.env.AUTH_SECRET
 const bcrypt = require("bcryptjs");
-const authenticator = require("google_authenticator");
+const speakeasy = require("speakeasy");
 const nodemailer = require("nodemailer");
+const sendVerification = require("../utils/user.verification");
+
 
 exports.authenticateUser = async (req, res) => {
   try {
@@ -31,24 +33,13 @@ exports.authenticateUser = async (req, res) => {
     if (bcrypt.compareSync(user.password, password)) {
       const twoFactorAuth = await user.getTwoFactorAuth();
       if (twoFactorAuth.enabled == false) {
-	const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 23200 });
+	const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 43200 });
 	return res.status(200).json({ token: token });
       } else {
-	const totp = authenticator.generateToken(twoFactorAuth.secret);
-	const transporter = nodemailer.createTransport({
-	  host: process.env.EMAIL_HOST,
-	  port: process.env.EMAIL_PORT,
-	  secure: false,
-	  auth: {
-	    user: process.env.EMAIL_USER,
-	    pass: process.evn.EMAIL_PASSWORD,
-	  },
-	});
-	await transporter.sendMail({
-	  from: process.env.EMAIL_USER,
-	  to: user.email,
-	  subject: "Two Factor Auth Token",
-	  text: `${totp}`
+	await sendVerification.emailUser({
+	  email: user.email,
+	  secret: twoFactorAuth.secret,
+	  type: "TwoFactor"
 	});
 	return res.status(200).json({ message: "Two factor otp sent. Redirect to verify-otp" });
       }
@@ -66,8 +57,12 @@ exports.verifyTotp = async (req, res) => {
       where: { email: req.body.email },
       include: [{ model: TwoFactorAuth }],
     });
-    if (authenticator.verifyToken(user.TwoFactorAuth.secret, req.body.totp)) {
-      const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 23200 });
+    if (speakeasy.totp.verify({
+      secret: user.TwoFactorAuth.secret,
+      encoding: "base32",
+      token: req.body.totp
+    })) {
+      const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 43200 });
       return res.status(200).json({ token: token });
     } else {
       res.status(403).json({ message: "Incorrect totp!" });
@@ -84,7 +79,11 @@ exports.verifyEmail = async (req, res) => {
       where: { email: req.body.email },
       include: [{ model: TwoFactorAuth }],
     });
-    if (authenticator.verifyToken(user.TwoFactorAuth.secret, req.body.totp)) {
+    if (speakeasy.totp.verify({
+      secret: user.TwoFactorAuth.secret,
+      encoding: "base32",
+      token: req.body.totp
+    })) {
       await user.update({ emailVerify: true });
       return res.status(200).json({ message: "Email Verified" });
     } else {
@@ -107,8 +106,21 @@ exports.logoutUser = async (req, res) => {
 exports.changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req?.body;
-    const user = await User.findByPk(req.user);
-    if (bcrypt.compareSync(user.password, oldPassword)) {
+    let change, user, id;
+    if (oldPassword) {
+      user = await User.findByPk(req.user);
+      change = bcrypt.compareSync(user.password, oldPassword);
+    } else {
+      jwt.verify(req.params.token, authSecret, (err, userId) => {
+	if (err) {
+	  return res.status(401).json({ message: `Unauthorzied! ${err.message}` });
+	}
+	id = userId;
+      });
+      user = await User.findByPk(id);
+      change = true;
+    }
+    if (change) {
       await user.update({ password: bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10)) });
       return res.status(200).json({ message: "Password Successfully Updated" });
     }
@@ -116,5 +128,24 @@ exports.changePassword = async (req, res) => {
     return res.status(400).json({ message: "Old password incorrect!" });
   } catch (e) {
     return res.status(400).json({ message: e.message });
+  }
+}
+
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const user = User.findOne({ where: { email: req.body.email }});
+
+    if (!user) {
+      res.status(404).json({ message: "No user found with given email" });
+    }
+    const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 1800 });
+    await sendVerification.emailUser({
+      email: user.email,
+      link: `${req.protocol}://${req.hostname}/api/auth/change-password/${token}`,
+      type: "Reset"
+    });
+  } catch (e) {
+    res.status(400).json({ message: e.message });
   }
 }

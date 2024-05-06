@@ -5,7 +5,7 @@ const User = require("./user.model");
 const Cart = sequelize.define("Cart", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
 

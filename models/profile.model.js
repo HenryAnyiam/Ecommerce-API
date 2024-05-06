@@ -6,7 +6,7 @@ const User = require("./user.model");
 const Profile = sequelize.define("Profile", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
 
@@ -20,7 +20,7 @@ const Profile = sequelize.define("Profile", {
 
   photo: {
     type: DataTypes.STRING,
-    default: "default_photo_url",
+    defaultValue: "default_photo_url",
     allowNull: false,
   },
 

@@ -6,7 +6,7 @@ const User = require("./user.model");
 const TwoFactorAuth = sequelize.define("TwoFactorAuth", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
 

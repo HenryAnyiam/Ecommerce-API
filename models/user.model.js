@@ -5,7 +5,7 @@ const sequelize = require("../config/db.config");
 const User = sequelize.define("User", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     primaryKey: true,
   },
 
@@ -29,7 +29,7 @@ const User = sequelize.define("User", {
 
   emailVerify: {
     type: DataTypes.BOOLEAN,
-    default: false,
+    defaultValue: false,
   },
 
   password: {
@@ -40,7 +40,7 @@ const User = sequelize.define("User", {
   role: {
     type: DataTypes.ENUM,
     values: ['customer', 'admin'],
-    default: 'customer',
+    defaultValue: 'customer',
   },
 
   phone: {
@@ -54,7 +54,7 @@ const User = sequelize.define("User", {
 
   phoneVerify: {
     type: DataTypes.BOOLEAN,
-    default: false,
+    defaultValue: false,
   },
 
 });

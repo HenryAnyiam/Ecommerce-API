@@ -5,7 +5,7 @@ const sequelize = require("../config/db.config");
 const Product = sequelize.define("Product", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4,
+    defaultValue: datatypes.uuidv4,
     primaryKey: true,
   },
 });

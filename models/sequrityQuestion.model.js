@@ -6,7 +6,7 @@ const User = require("./user.model");
 const SequrityQuestion = sequelize.define("SequrityQuestion", {
   id: {
     type: DataTypes.UUID,
-    default: DataTypes.UUIDV4
+    defaultValue: DataTypes.UUIDV4
     primaryKey: true,
   },
 

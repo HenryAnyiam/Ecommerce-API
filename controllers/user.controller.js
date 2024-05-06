@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const authenticator = require("google_authenticator");
+const speakeasy = require("speakeasy");
 const User = require("../models/user.model");
 const TwoFactorAuth = require("../models/twoFactorAuth.model");
 const Cart = require("../models/cart.model");
@@ -43,11 +43,11 @@ exports.createUser = async (req, res) => {
     if (req.file) {
       photo = req.file.path;
     }
-    await user.addProfile({ firstName, lastName, photo, });
-    const secret = authenticator.generateSecret()
-    await user.addTwoFactorAuth({ secret });
-    await user.addCart();
-    await sendVerification.sendTotpToEmail(email, secret);
+    await user.createProfile({ firstName, lastName, photo, });
+    const secret = speakeasy.generateSecret({ length: 16 }).base32;
+    await user.createTwoFactorAuth({ secret });
+    await user.createCart();
+    await sendVerification.emailUser({ email, secret, type: "Verify" });
     return res.status(201).json({
       username,
       email,
@@ -93,7 +93,11 @@ exports.updateUser = async (req, res) => {
 
     if (req.body.email) {
       user.emailVerify = false;
-      await sendVerification.sendTotpToEmail(req.body.email, user.TwoFactorAuth.secret);
+      await sendVerification.emailUser({
+	email: req.body.email,
+	secret: user.TwoFactorAuth.secret,
+	type: "Verify"
+      });
     }
 
     if (req.body.phone) {
