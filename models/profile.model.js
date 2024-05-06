@@ -30,7 +30,7 @@ const Profile = sequelize.define("Profile", {
   },
 });
 
-const User.hasOne(Profile, { foreignKey: "userId" });
-const Profile.belongsTo(User, { foreignKey: "userId" });
+User.hasOne(Profile, { foreignKey: "userId" });
+Profile.belongsTo(User, { foreignKey: "userId" });
 
 module.exports = Profile;

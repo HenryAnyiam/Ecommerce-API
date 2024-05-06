@@ -1,5 +1,10 @@
 const bcrypt = require("bcryptjs");
+const authenticator = require("google_authenticator");
 const User = require("../models/user.model");
+const TwoFactorAuth = require("../models/twoFactorAuth.model");
+const Cart = require("../models/cart.model");
+const Profile = require("../models/profile.model");
+const sendVerification = require("../utils/user.verification");
 
 
 exports.getUserById = async (req, res) => {
@@ -39,6 +44,10 @@ exports.createUser = async (req, res) => {
       photo = req.file.path;
     }
     await user.addProfile({ firstName, lastName, photo, });
+    const secret = authenticator.generateSecret()
+    await user.addTwoFactorAuth({ secret });
+    await user.addCart();
+    await sendVerification.sendTotpToEmail(email, secret);
     return res.status(201).json({
       username,
       email,
@@ -60,7 +69,12 @@ exports.createUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const user = await User.findByPk(req.params.id, {
+      include: [
+	{ model: TwoFactorAuth },
+	{ model: Profile },
+      ],
+    });
     await user.update({
       username: req.body.username || user.username,
       role: req.body.role || user.role,
@@ -68,10 +82,9 @@ exports.updateUser = async (req, res) => {
       phone: req.body.phone || user.phone,
     });
 
-    const profile = await user.getProfile();
-    await profile.update({
-      firstName: req.body.firstName || profile.firstName,
-      lastName: req.body.lastName || profile.lastName,
+    await user.Profile.update({
+      firstName: req.body.firstName || user.Profile.firstName,
+      lastName: req.body.lastName || user.Profile.lastName,
     });
     if (req.file) {
       profile.photo = req.file.path;
@@ -80,6 +93,7 @@ exports.updateUser = async (req, res) => {
 
     if (req.body.email) {
       user.emailVerify = false;
+      await sendVerification.sendTotpToEmail(req.body.email, user.TwoFactorAuth.secret);
     }
 
     if (req.body.phone) {

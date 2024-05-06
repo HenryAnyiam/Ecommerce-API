@@ -8,12 +8,12 @@ const TwoFactorAuth = sequelize.define("TwoFactorAuth", {
     type: DataTypes.UUID,
     default: DataTypes.UUIDV4,
     primaryKey: true,
-  }
+  },
 
   enabled: {
     type: DataTypes.BOOLEAN,
     default: false,
-  }
+  },
 
   secret: {
     type: DataTypes.STRING,
