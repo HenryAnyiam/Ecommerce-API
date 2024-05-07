@@ -4,7 +4,7 @@ const authSecret = process.env.AUTH_SECRET;
 
 const verifyToken = (req, res, next) => {
   try {
-    const authHeader = req.headers("authorization");
+    const authHeader = req.header("authorization");
     const token = authHeader && authHeader.split(" ")[1];
 
     if (!token) {
@@ -16,11 +16,11 @@ const verifyToken = (req, res, next) => {
 	return res.status(401).json({ message: `Unauthorzied! ${err.message}` });
       }
 
-      req.user = user;
+      req.user = user.userId;
       next();
     });
   } catch (e) {
-    return res.status(500).json({ message: "Authorization Error!" });
+    return res.status(500).json({ message: `Authorization Error! - ${e.message}` });
   }
 }
 

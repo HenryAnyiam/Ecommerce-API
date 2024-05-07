@@ -12,10 +12,18 @@ const TwoFactorAuth = sequelize.define("TwoFactorAuth", {
 
   enabled: {
     type: DataTypes.BOOLEAN,
-    default: false,
+    defaultValue: false,
   },
 
   secret: {
+    type: DataTypes.STRING,
+  },
+
+  phoneSecret: {
+    type: DataTypes.STRING,
+  },
+
+  emailSecret: {
     type: DataTypes.STRING,
   },
 

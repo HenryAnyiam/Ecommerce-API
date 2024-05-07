@@ -15,7 +15,7 @@ exports.authenticateUser = async (req, res) => {
     if (email) {
       user = await User.findOne({ where: { email } });
     } else if (username) {
-      user = await User.findOne({ where: { email } });
+      user = await User.findOne({ where: { phone } });
     }
 
     if (!user) {
@@ -26,13 +26,9 @@ exports.authenticateUser = async (req, res) => {
       return res.status(400).json({ message: "Email not verified. Verify to login" });
     }
 
-    if (!user.phoneVerify) {
-      return res.status(400).json({ message: "Phone not verified. Verify to login" });
-    }
-
-    if (bcrypt.compareSync(user.password, password)) {
+    if (bcrypt.compareSync(password, user.password)) {
       const twoFactorAuth = await user.getTwoFactorAuth();
-      if (twoFactorAuth.enabled == false) {
+      if (twoFactorAuth.enabled === false) {
 	const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 43200 });
 	return res.status(200).json({ token: token });
       } else {
@@ -60,7 +56,8 @@ exports.verifyTotp = async (req, res) => {
     if (speakeasy.totp.verify({
       secret: user.TwoFactorAuth.secret,
       encoding: "base32",
-      token: req.body.totp
+      token: req.body.totp,
+      time: 600,
     })) {
       const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 43200 });
       return res.status(200).json({ token: token });
@@ -80,12 +77,13 @@ exports.verifyEmail = async (req, res) => {
       include: [{ model: TwoFactorAuth }],
     });
     if (speakeasy.totp.verify({
-      secret: user.TwoFactorAuth.secret,
+      secret: user.TwoFactorAuth.emailSecret,
       encoding: "base32",
-      token: req.body.totp
+      token: req.body.totp,
+      time: 3600,
     })) {
       await user.update({ emailVerify: true });
-      return res.status(200).json({ message: "Email Verified" });
+      return res.status(200).json({ message: "Email Successfully Verified" });
     } else {
       res.status(403).json({ message: "Incorrect totp!" });
     }
@@ -93,6 +91,30 @@ exports.verifyEmail = async (req, res) => {
     res.status(400).json({ message: e.message });
   }
 }
+
+
+exports.verifyPhone = async (req, res) => {
+  try {
+    const user = await User.findOne({
+      where: { phone: req.body.phone },
+      include: [{ model: TwoFactorAuth }],
+    });
+    if (speakeasy.totp.verify({
+      secret: user.TwoFactorAuth.phoneSecret,
+      encoding: "base32",
+      token: req.body.totp,
+      time: 3600,
+    })) {
+      await user.update({ phoneVerify: true });
+      return res.status(200).json({ message: "Phone Number Successfully Verified" });
+    } else {
+      res.status(403).json({ message: "Incorrect totp!" });
+    }
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+}
+
 
 exports.logoutUser = async (req, res) => {
   try {
@@ -105,20 +127,22 @@ exports.logoutUser = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const { oldPassword, newPassword } = req?.body;
+    const { oldPassword, newPassword, totp, email } = req?.body;
     let change, user, id;
     if (oldPassword) {
       user = await User.findByPk(req.user);
-      change = bcrypt.compareSync(user.password, oldPassword);
+      change = bcrypt.compareSync(oldPassword, user.password);
     } else {
-      jwt.verify(req.params.token, authSecret, (err, userId) => {
-	if (err) {
-	  return res.status(401).json({ message: `Unauthorzied! ${err.message}` });
-	}
-	id = userId;
+      user = await User.findOne({
+	where: { email },
+	include: [{ model: TwoFactorAuth }]
       });
-      user = await User.findByPk(id);
-      change = true;
+      change = speakeasy.totp.verify({
+	secret: user.TwoFactorAuth.secret,
+	encoding: "base32",
+	token: totp,
+	time: 600,
+      });
     }
     if (change) {
       await user.update({ password: bcrypt.hashSync(newPassword, bcrypt.genSaltSync(10)) });
@@ -134,17 +158,20 @@ exports.changePassword = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-    const user = User.findOne({ where: { email: req.body.email }});
+    const user = await User.findOne({
+      where: { email: req.body.email },
+      include: [{ model: TwoFactorAuth }],
+    });
 
     if (!user) {
       res.status(404).json({ message: "No user found with given email" });
     }
-    const token = jwt.sign({ userId: user.id }, authSecret, { expiresIn: 1800 });
     await sendVerification.emailUser({
       email: user.email,
-      link: `${req.protocol}://${req.hostname}/api/auth/change-password/${token}`,
+      secret: user.TwoFactorAuth.secret,
       type: "Reset"
     });
+    return res.status(200).json({ message: "Reset token sent to user email" });
   } catch (e) {
     res.status(400).json({ message: e.message });
   }

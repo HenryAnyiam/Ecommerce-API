@@ -15,12 +15,32 @@ exports.getUserById = async (req, res) => {
 	"id",
 	"username",
 	"email",
+	"emailVerify",
 	"role",
 	"phone",
+	"phoneVerify",
       ],
       include: [
-	{ model: Address },
-	{ model: Profile },
+	{
+	  model: Address,
+	  attributes: [
+	    "type",
+	    "street",
+	    "city",
+	    "state",
+	    "country",
+	    "postalCode",
+	    "default",
+	  ]
+	},
+	{
+	  model: Profile,
+	  attributes: [
+	    "firstName",
+	    "lastName",
+	    "photo",
+	  ]
+	},
       ],
     });
     return res.status(200).json(user);
@@ -46,9 +66,12 @@ exports.createUser = async (req, res) => {
     }
     await user.createProfile({ firstName, lastName, photo, });
     const secret = speakeasy.generateSecret({ length: 16 }).base32;
-    await user.createTwoFactorAuth({ secret });
+    const emailSecret = speakeasy.generateSecret({ length: 16 }).base32;
+    const phoneSecret = speakeasy.generateSecret({ length: 16 }).base32;
+    await user.createTwoFactorAuth({ secret, emailSecret, phoneSecret });
     await user.createCart();
-    await sendVerification.emailUser({ email, secret, type: "Verify" });
+    await sendVerification.emailUser({ email, secret: emailSecret, type: "Verify" });
+    sendVerification.smsUser({phone, secret: phoneSecret });
     return res.status(201).json({
       id: user.id,
       username,
@@ -97,13 +120,17 @@ exports.updateUser = async (req, res) => {
       user.emailVerify = false;
       await sendVerification.emailUser({
 	email: req.body.email,
-	secret: user.TwoFactorAuth.secret,
+	secret: user.TwoFactorAuth.emailSecret,
 	type: "Verify"
       });
     }
 
     if (req.body.phone) {
       user.phoneVerify = false;
+      sendVerification.smsUser({
+	phone: req.body.phone,
+	secret: user.TwoFactorAuth.phoneSecret
+      });
     }
     await user.save();
     return res.status(200).json({
@@ -113,9 +140,13 @@ exports.updateUser = async (req, res) => {
       role: user.role,
       phone: user.phone,
       phoneVerify: user.phoneVerify,
-      profile,
+      profile: {
+	firstName: user.Profile.firstName,
+	lastName: user.Profile.lastName,
+	photo: user.Profile.photo
+      }
     });
-  } catch {
+  } catch (e) {
     return res.status(400).json({ message: e.message });
   }
 }
@@ -123,9 +154,9 @@ exports.updateUser = async (req, res) => {
 
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByPk(req.params.id);
+    const user = await User.findByPk(req.user);
     await user.destroy();
-    return res.status(204);
+    return res.status(204).json({ message: "Deleted" });
   } catch (e) {
     return res.status(400).json({ message: e.message });
   }
@@ -135,7 +166,13 @@ exports.deleteUser = async (req, res) => {
 exports.getProfileById = async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
-    const profile = await User.getProfile();
+    const profile = await user.getProfile({
+      attributes: [
+	"firstName",
+        "lastName",
+        "photo",
+      ]
+    });
     res.status(200).json(profile);
   } catch (e) {
     res.status(400).json({ message: e.message });
