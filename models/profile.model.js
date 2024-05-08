@@ -1,7 +1,7 @@
 const { DataTypes } = require("sequelize");
 const sequelize = require("../config/db.config");
 const User = require("./user.model");
-
+const defaultPhoto = process.env.DEFAULT_PHOTO;
 
 const Profile = sequelize.define("Profile", {
   id: {
@@ -20,7 +20,7 @@ const Profile = sequelize.define("Profile", {
 
   photo: {
     type: DataTypes.STRING,
-    defaultValue: "default_photo_url",
+    defaultValue: defaultPhoto,
     allowNull: false,
   },
 

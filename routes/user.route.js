@@ -7,7 +7,7 @@ const verifySignup = require("../middleware/signup.middleware");
 
 const router = express.Router();
 
-router.post("/", verifySignup, upload.single("photo"), userController.createUser);
+router.post("/", upload.single("photo"), verifySignup, userController.createUser);
 router.get("/:id", userController.getUserById);
 router.put("/:id", verifyToken, upload.single("photo"), userController.updateUser);
 router.delete("/:id", verifyToken, userController.deleteUser);

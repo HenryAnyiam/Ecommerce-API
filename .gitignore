@@ -2,3 +2,5 @@
 node_modules/
 conf_db.sql
 package-lock.json
+.DS_Store
+uploads/
