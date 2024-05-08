@@ -27,7 +27,11 @@ exports.cronJob = () => {
 	    if (olderDays >= userDate) {
 	      await user.delete();
 	    } else {
-	      await sendVerification.sendTotpToEmail(user.email, user.TwoFactorAuth.secret);
+	      await sendVerification.emailUser({
+		email: user.email,
+		secret:user.TwoFactorAuth.emailSecret,
+		type: "Warning"
+	      });
 	    }
 	  })
 	);
